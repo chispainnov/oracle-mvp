@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Oracle Library</h1>
+<div style="display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+  {% for s in specimens %}
+    <div>
+      <img class="specimen-img" src="/{{ s.image }}" alt="{{ s.name }}" />
+      <h3 style="margin:.5rem 0 0">{{ s.name }}</h3>
+      <div style="opacity:.8"><i>{{ s.species }}</i> — {{ s.category }}</div>
+      <p>{{ s.fun_fact }}</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
+

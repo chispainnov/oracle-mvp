@@ -1,0 +1,43 @@
+<!doctype html>
+<html data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title or "Oracle" }}</title>
+  <style>
+    :root{ --bg:#000; --fg:#fff; --muted:#9aa0a6; --card:#0a0a0a; --border:#222; }
+    [data-theme="light"]{ --bg:#fff; --fg:#000; --muted:#444; --card:#f6f6f6; --border:#ddd; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+    .wrap{max-width:1000px;margin:0 auto;padding:24px}
+    .row{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .specimen-img{display:block;max-width:320px;width:100%;height:auto;margin:0 auto}
+    .muted{color:var(--muted)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .btn{padding:8px 12px;border-radius:10px;background:transparent;color:var(--fg);border:1px solid var(--border);cursor:pointer}
+    a{color:inherit;text-decoration:none}
+    a.card:hover{outline:1px solid var(--border)}
+  </style>
+  <script>
+    (function(){
+      const saved = localStorage.getItem("oracle-theme") || "dark";
+      document.documentElement.setAttribute("data-theme", saved);
+      window.toggleTheme = function(){
+        const cur = document.documentElement.getAttribute("data-theme");
+        const next = cur === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("oracle-theme", next);
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div><strong>Oracle</strong></div>
+      <button class="btn" onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

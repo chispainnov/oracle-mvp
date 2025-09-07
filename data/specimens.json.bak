@@ -1,0 +1,15 @@
+"image": "static/oracle_pngs/aloe.png"
+"image": "static/oracle_pngs/bee.png"
+"image": "static/oracle_pngs/bullfrog.png"
+"image": "static/oracle_pngs/fern.png"
+"image": "static/oracle_pngs/fly_agaric.png"
+"image": "static/oracle_pngs/quartz.png"
+
+[
+  {"name":"Aloe Vera","species":"Aloe vera","category":"Plant","fun_fact":"Used for centuries to treat burns.","image":"static/oracle_pngs/aloe.png"},
+  {"name":"Fern","species":"Various species","category":"Plant","fun_fact":"Ancient plants ~360M years old.","image":"static/oracle_pngs/fern.png"},
+  {"name":"American Bullfrog","species":"Lithobates catesbeianus","category":"Animal","fun_fact":"Large North American frog with deep croak.","image":"static/oracle_pngs/bullfrog.png"},
+  {"name":"Western Honey Bee","species":"Apis mellifera","category":"Insect","fun_fact":"Pollinates ~1/3 of human food crops.","image":"static/oracle_pngs/bee.png"},
+  {"name":"Quartz","species":"Silicon dioxide (SiO2)","category":"Mineral","fun_fact":"Abundant mineral used in watches/electronics.","image":"static/oracle_pngs/quartz.png"},
+  {"name":"Fly Agaric","species":"Amanita muscaria","category":"Fungi","fun_fact":"Iconic red cap with white spots.","image":"static/oracle_pngs/fly_agaric.png"}
+]
