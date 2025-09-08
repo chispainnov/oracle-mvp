@@ -1,43 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Oracle MVP</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    .btn { padding: 10px 20px; font-size: 16px; }
-  </style>
-</head>
-<body>
-  <h1>Oracle says hi</h1>
-
-  <form action="/scan" method="get">
-    <button class="btn" type="submit">📂 Upload a photo</button>
-  </form>
-
-  <form action="/capture" method="post" style="margin-top:15px">
-    <button class="btn" type="submit">📷 Capture with Camera</button>
-  </form>
-</body>
-</html>
-
-<form action="/specimens" method="get" style="margin-top:15px">
-  <button class="btn" type="submit">📚 Open Library</button>
-</form>
-<style>
-  .btn{padding:10px 14px;border-radius:10px;background:#111;color:#fff;border:1px solid #333}
-</style>
 {% extends "base.html" %}
-{% block content %}
-<h1>Oracle Library</h1>
-<div style="display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-  {% for s in specimens %}
-    <div>
-      <img class="specimen-img" src="/{{ s.image }}" alt="{{ s.name }}" />
-      <h3 style="margin:.5rem 0 0">{{ s.name }}</h3>
-      <div style="opacity:.8"><i>{{ s.species }}</i> — {{ s.category }}</div>
-      <p>{{ s.fun_fact }}</p>
-    </div>
-  {% endfor %}
-</div>
+
+{% block title %}Oracle — Home{% endblock %}
+
+{% block tagline %}
+  <h2 class="tagline">Welcome to your living library of nature.</h2>
 {% endblock %}
 
+{% block content %}
+  <!-- Home can stay minimal. If you want featured items later, add them here. -->
+{% endblock %}
