@@ -1,112 +1,143 @@
+# app.py
 from fastapi import FastAPI, Request, UploadFile, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlmodel import SQLModel, Field, Session, create_engine, select
-from pathlib import Path
-from datetime import datetime
-from typing import Optional
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from PIL import Image
-import shutil
-import subprocess, time
-import json
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi import Request
 
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+from sqlmodel import SQLModel, Field, Session, create_engine, select
+from typing import Optional
+from datetime import datetime
+from pathlib import Path
+import subprocess
+import shutil
+import json
 
-DATA_DIR = Path("data"); IMG_DIR = DATA_DIR / "images"
-DATA_DIR.mkdir(exist_ok=True); IMG_DIR.mkdir(parents=True, exist_ok=True)
-engine = create_engine("sqlite:///data/oracle.db", connect_args={"check_same_thread": False})
+# ---------- Paths & folders ----------
+ROOT = Path(__file__).parent
+DATA_DIR = ROOT / "data"
+IMG_DIR = DATA_DIR / "images"
+DB_PATH = DATA_DIR / "oracle.db"
 
+DATA_DIR.mkdir(exist_ok=True)
+IMG_DIR.mkdir(parents=True, exist_ok=True)
+
+# ---------- DB model ----------
 class Scan(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     image_path: str
-    status: str
+    status: str  # "uploaded" | "captured"
+    specimen: Optional[str] = None
     captured_at: datetime = Field(default_factory=datetime.utcnow)
 
+engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SQLModel.metadata.create_all(engine)
 
-env = Environment(loader=FileSystemLoader("templates"), autoescape=select_autoescape(["html","xml"]))
-def render(name, **ctx): return HTMLResponse(env.get_template(name).render(**ctx))
+# ---------- FastAPI & templates ----------
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/images", StaticFiles(directory=str(IMG_DIR)), name="images")
+templates = Jinja2Templates(directory="templates")
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return render("home.html")
+# ---------- Helpers ----------
+def _timestamp() -> str:
+    return datetime.utcnow().strftime("%Y%m%d_%H%M%S")
 
-@app.get("/scan/new", response_class=HTMLResponse)
-def scan_form(request: Request):
-    return render("scan_new.html")
+def _camera_bin() -> Optional[str]:
+    """Prefer modern rpicam-still; fall back to legacy libcamera-still."""
+    for name in ("rpicam-still", "libcamera-still"):
+        path = shutil.which(name) or f"/usr/bin/{name}"
+        if Path(path).exists():
+            return path
+    return None
 
-@app.post("/scan")
-async def create_scan(image: UploadFile):
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    suffix = Path(image.filename).suffix or ".jpg"
-    img_path = IMG_DIR / f"scan_{ts}{suffix}"
-    with img_path.open("wb") as f:
-        shutil.copyfileobj(image.file, f)
-    try:
-        im = Image.open(img_path)
-        im.thumbnail((800,800))
-        im.save(img_path)
-    except Exception:
-        pass
-
-    with Session(engine) as s:
-        scan = Scan(image_path=str(img_path), status="uploaded")
-        s.add(scan); s.commit(); s.refresh(scan)
-    return RedirectResponse(url=f"/scan/{scan.id}", status_code=303)
-
-@app.get("/scan/{scan_id}", response_class=HTMLResponse)
-def scan_detail(scan_id: int):
-    with Session(engine) as s:
-        scan = s.get(Scan, scan_id)
-    return render("scan_show.html", scan=scan)
-
-
+def fs_path_to_url(p: Path | str) -> str:
+    """Turn a file path inside IMG_DIR into a browser URL under /images/..."""
+    p = Path(p)
+    return f"/images/{p.name}"
 
 def capture_photo() -> Path:
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    out = IMG_DIR / f"capture_{ts}.jpg"
-    # Capture one still image from the Pi camera
-    subprocess.run(
-        ["libcamera-still", "-o", str(out), "-n", "--timeout", "500"],
-        check=True
-    )
-    return out
+    """Capture one still from the Pi camera and save to IMG_DIR."""
+    ts = _timestamp()
+    out_path = IMG_DIR / f"capture_{ts}.jpg"
+
+    cam = _camera_bin()
+    if not cam:
+        raise RuntimeError(
+            "No camera CLI found. Install `rpicam-apps` (or `libcamera-apps`) "
+            "and ensure rpicam-still/libcamera-still is on PATH."
+        )
+
+    subprocess.run([cam, "-o", str(out_path), "-n", "--timeout", "700"], check=True)
+    return out_path
+
+def save_upload(file: UploadFile) -> Path:
+    """Save an uploaded file into IMG_DIR with a timestamped name."""
+    ts = _timestamp()
+    suffix = Path(file.filename).suffix.lower() or ".jpg"
+    out_path = IMG_DIR / f"scan_{ts}{suffix}"
+    with out_path.open("wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return out_path
+
+# ---------- Routes ----------
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
+
+@app.get("/scan/new", response_class=HTMLResponse)
+def scan_new(request: Request):
+    return templates.TemplateResponse("scan.html", {"request": request})
+
+@app.post("/scan")
+def create_scan(image: UploadFile):
+    out_path = save_upload(image)
+    with Session(engine) as s:
+        rec = Scan(image_path=str(out_path), status="uploaded")
+        s.add(rec)
+        s.commit()
+        s.refresh(rec)
+    return RedirectResponse(url=f"/scan/{rec.id}", status_code=303)
 
 @app.post("/capture")
 def capture_and_scan():
     try:
-        img_path = capture_photo()
+        out_path = capture_photo()
     except subprocess.CalledProcessError:
-        return {"error": "Camera capture failed"}
+        return HTMLResponse("<h3>Camera capture failed (rpi/libcamera error)</h3>", status_code=500)
+    except RuntimeError as e:
+        return HTMLResponse(f"<h3>{e}</h3>", status_code=500)
 
-    # Save this new scan in the database (just like /scan does)
     with Session(engine) as s:
-        scan = Scan(image_path=str(img_path), status="captured")
-        s.add(scan)
+        rec = Scan(image_path=str(out_path), status="captured")
+        s.add(rec)
         s.commit()
-        s.refresh(scan)
+        s.refresh(rec)
 
-    # Redirect to the scan detail page
-    return RedirectResponse(url=f"/scan/{scan.id}", status_code=303)
+    return RedirectResponse(url=f"/scan/{rec.id}", status_code=303)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+@app.get("/scan/{scan_id}", response_class=HTMLResponse)
+def scan_show(request: Request, scan_id: int):
+    with Session(engine) as s:
+        rec = s.get(Scan, scan_id)
+        if not rec:
+            return HTMLResponse("<h3>Scan not found.</h3>", status_code=404)
 
-with open("data/specimens.json") as f:
-    specimens = json.load(f)
+    image_url = fs_path_to_url(rec.image_path)
+    return templates.TemplateResponse(
+        "scan_show.html",
+        {"request": request, "scan": rec, "image_url": image_url},
+    )
 
-@app.get("/specimens")
-def list_specimens(request: Request):
-    return templates.TemplateResponse("specimens.html",
-        {"request": request, "specimens": specimens})
+@app.get("/specimens", response_class=HTMLResponse)
+def specimens(request: Request):
+    data = []
+    json_path = DATA_DIR / "specimens.json"
+    if json_path.exists():
+        with json_path.open("r") as f:
+            data = json.load(f)
+    return templates.TemplateResponse("specimens.html", {"request": request, "specimens": data})
 
-# Optional: make "/" go to the library automatically
-@app.get("/")
-def home_redirect(request: Request):
-    return templates.TemplateResponse("specimens.html",
-        {"request": request, "specimens": specimens})
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+

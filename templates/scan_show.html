@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Result — Oracle{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <div class="topbar">
+    <div style="font-weight:700;">Oracle</div>
+    <nav style="display:flex; gap:14px; align-items:center">
+      <a class="btn" href="/scan/new">Scan</a>
+      <a class="btn" href="/specimens">Library</a>
+      <button class="btn" onclick="toggleTheme()">Toggle Theme</button>
+    </nav>
+  </div>
+
+  <h2>Preview</h2>
+  {% if image_url %}
+    <img src="{{ image_url }}" alt="Captured specimen" class="specimen-img">
+  {% else %}
+    <p class="muted">No image to show.</p>
+  {% endif %}
+
+  <div style="margin-top:16px; display:flex; gap:12px;">
+    <a class="btn" href="/scan/new">← Back to Scan</a>
+    <!-- Placeholder actions you can wire up later -->
+    <a class="btn" href="/specimens">Go to Library</a>
+  </div>
+</div>
+{% endblock %}

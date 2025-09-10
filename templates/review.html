@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Review — Oracle{% endblock %}
+
+{% block content %}
+  <div style="max-width:720px; margin: 24px auto;">
+    <h2>Review Capture</h2>
+    <div class="card" style="margin-top:12px;">
+      <img class="specimen-img" src="/{{ image_path }}" alt="Captured image">
+      <div class="muted" style="margin-top:8px;">Saved: {{ captured_at }}</div>
+    </div>
+
+    <form method="post" action="/save_capture" style="margin-top:16px;">
+      <input type="hidden" name="image_path" value="{{ image_path }}"/>
+      <label for="label" class="muted">Label this specimen</label>
+      <select id="label" name="label" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--fg); margin-top:6px;">
+        <option value="">Unknown</option>
+        <option value="Aloe vera">Aloe vera</option>
+        <option value="Fern">Fern</option>
+        <option value="American bullfrog">American bullfrog</option>
+        <option value="Western honey bee">Western honey bee</option>
+        <option value="Quartz">Quartz</option>
+        <option value="Fly agaric">Fly agaric</option>
+      </select>
+
+      <label for="notes" class="muted" style="display:block; margin-top:12px;">Notes (optional)</label>
+      <textarea id="notes" name="notes" rows="3" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--fg);"></textarea>
+
+      <div style="margin-top:14px; display:flex; gap:10px;">
+        <button class="btn" type="submit">Save to Library</button>
+        <a class="btn" href="/scan">Capture Again</a>
+        <a class="btn" href="/specimens">Go to Library</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

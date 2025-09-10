@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Scan — Oracle{% endblock %}
+
+{% block content %}
+  <div style="text-align:center; margin-top: 24px;">
+    <h2>Scan</h2>
+    <p class="muted">Point your Oracle at a specimen and capture a photo.</p>
+
+    <form method="post" action="/capture" style="margin-top:16px;">
+      <button class="btn" type="submit">📸 Capture with Camera</button>
+    </form>
+  </div>
+{% endblock %}
